@@ -1,0 +1,20 @@
+type AverageProductionEntry {
+    ParkId: String!
+    Region: String!
+    AverageValue: Float!
+    HighestValue: Float!
+    LowestValue: Float!
+}
+
+type AnomalyDetectionEntry {
+    ParkId: String!
+    TurbineId: String!
+    Value: Float!
+    Availability: Int!
+}
+
+type Query {
+    AverageProduction: [AverageProductionEntry!]!
+    AnomalyDetection: [AnomalyDetectionEntry!]!
+    
+}
