@@ -1,37 +1,29 @@
 package main
 
 import (
-	"gql-service/graph"
-	"gql-service/pkg/config"
-	"gql-service/pkg/event"
-	"gql-service/pkg/jetstream"
-	"net/http"
+	_ "embed"
 	"os"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
+	"event-service/pkg/config"
+	"event-service/pkg/event"
+	"event-service/pkg/handler"
+	"event-service/pkg/jetstream"
 
+	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-const defaultPort = "8080"
+//go:embed processing/processing.lua
+var script []byte
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
-
 	// Set up zerolog time format
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	// Set pretty logging on
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
-
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	config.AppConfig.Script = script
 
 	nc, err := jetstream.Connect(config.ServiceConfig.NatsServer)
 	if err != nil {
@@ -59,6 +51,7 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to subscribe to input subject")
 	}
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal().Msgf("%w", http.ListenAndServe(":"+port, nil))
+	e := echo.New()
+	handler.NewHandler(e)
+	e.Logger.Fatal(e.Start(":1323"))
 }
